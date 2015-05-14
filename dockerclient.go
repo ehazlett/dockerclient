@@ -505,3 +505,53 @@ func (client *DockerClient) ImportImage(source string, repository string, tag st
 	}
 	return client.doStreamRequest("POST", "/images/create?"+v.Encode(), in, nil)
 }
+
+func (client *DockerClient) BuildImage(image BuildImage) (io.ReadCloser, error) {
+	v := url.Values{}
+
+	if image.DockerfilePath != "" {
+		v.Set("dockerfile", image.DockerfilePath)
+	}
+	if image.Tag != "" {
+		v.Set("t", image.Tag)
+	}
+	if image.Remote != "" {
+		v.Set("remote", image.Remote)
+	}
+	if image.NoCache {
+		v.Set("nocache", "1")
+	}
+	if image.Pull {
+		v.Set("pull", "1")
+	}
+	if image.Remove {
+		v.Set("rm", "1")
+	} else {
+		v.Set("rm", "0")
+	}
+	if image.ForceRemove {
+		v.Set("forcerm", "1")
+	}
+	if image.Quiet {
+		v.Set("q", "1")
+	}
+
+	v.Set("cpusetcpus", image.CpuSet)
+	v.Set("cpushares", strconv.FormatInt(image.CpuShares, 10))
+	v.Set("memory", strconv.FormatInt(image.Memory, 10))
+	v.Set("memswap", strconv.FormatInt(image.MemorySwap, 10))
+
+	headers := make(map[string]string)
+	if image.Auth != nil {
+		headers["X-Registry-Auth"] = image.Auth.encode()
+	}
+	if image.Config != nil {
+		headers["X-Registry-Config"] = image.Config.encode()
+	}
+	if image.Context != nil {
+		headers["Content-Type"] = "application/tar"
+	}
+
+	uri := fmt.Sprintf("/%s/build?%s", APIVersion, v.Encode())
+	return client.doStreamRequest("POST", uri, image.Context, headers)
+}

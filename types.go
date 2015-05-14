@@ -2,6 +2,7 @@ package dockerclient
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/docker/docker/pkg/units"
@@ -346,4 +347,22 @@ type Ulimit struct {
 type LogConfig struct {
 	Type   string            `json:"type"`
 	Config map[string]string `json:"config"`
+}
+
+type BuildImage struct {
+	Auth           *AuthConfig
+	Config         *ConfigFile
+	Tag            string
+	Remote         string
+	DockerfilePath string
+	Context        io.Reader
+	NoCache        bool
+	Pull           bool
+	Remove         bool
+	ForceRemove    bool
+	Quiet          bool
+	Memory         int64
+	MemorySwap     int64
+	CpuShares      int64
+	CpuSet         string
 }
