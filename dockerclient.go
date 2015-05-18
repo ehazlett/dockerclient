@@ -363,7 +363,11 @@ func (client *DockerClient) PullImage(name string, auth *AuthConfig) error {
 	uri := fmt.Sprintf("/%s/images/create?%s", APIVersion, v.Encode())
 	req, err := http.NewRequest("POST", client.URL.String()+uri, nil)
 	if auth != nil {
-		req.Header.Add("X-Registry-Auth", auth.encode())
+		encoded_auth, err := auth.encode()
+		if err != nil {
+			return err
+		}
+		req.Header.Add("X-Registry-Auth", encoded_auth)
 	}
 	resp, err := client.HTTPClient.Do(req)
 	if err != nil {
@@ -543,10 +547,20 @@ func (client *DockerClient) BuildImage(image BuildImage) (io.ReadCloser, error) 
 
 	headers := make(map[string]string)
 	if image.Auth != nil {
-		headers["X-Registry-Auth"] = image.Auth.encode()
+		encoded_auth, err := image.Auth.encode()
+		if err != nil {
+			return nil, err
+		}
+
+		headers["X-Registry-Auth"] = encoded_auth
 	}
 	if image.Config != nil {
-		headers["X-Registry-Config"] = image.Config.encode()
+		encoded_config, err := image.Config.encode()
+		if err != nil {
+			return nil, err
+		}
+
+		headers["X-Registry-Config"] = encoded_config
 	}
 	if image.Context != nil {
 		headers["Content-Type"] = "application/tar"
