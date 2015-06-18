@@ -199,15 +199,24 @@ type ImageInfo struct {
 }
 
 type ContainerInfo struct {
-	Id              string
-	Created         string
-	Path            string
-	Name            string
-	Args            []string
-	ExecIDs         []string
-	Config          *ContainerConfig
-	State           *State
-	Image           string
+	Id      string
+	Created string
+	Path    string
+	Name    string
+	Args    []string
+	ExecIDs []string
+	Config  *ContainerConfig
+	State   *State
+	Image   string
+	Node    struct {
+		ID     string
+		IP     string
+		Addr   string
+		Name   string
+		Cpus   int
+		Memory int
+		Labels map[string]string
+	}
 	NetworkSettings struct {
 		IPAddress   string `json:"IpAddress"`
 		IPPrefixLen int    `json:"IpPrefixLen"`
