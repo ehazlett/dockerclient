@@ -18,6 +18,7 @@ type ContainerConfig struct {
 	Tty             bool
 	OpenStdin       bool
 	StdinOnce       bool
+	Labels          map[string]string
 	Env             []string
 	Cmd             []string
 	Image           string
