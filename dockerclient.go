@@ -497,7 +497,11 @@ func (client *DockerClient) PullImage(name string, auth *AuthConfig) error {
 	uri := fmt.Sprintf("/%s/images/create?%s", APIVersion, v.Encode())
 	req, err := http.NewRequest("POST", client.URL.String()+uri, nil)
 	if auth != nil {
-		req.Header.Add("X-Registry-Auth", auth.encode())
+		encoded_auth, err := auth.encode()
+		if err != nil {
+			return err
+		}
+		req.Header.Add("X-Registry-Auth", encoded_auth)
 	}
 	resp, err := client.HTTPClient.Do(req)
 	if err != nil {
@@ -628,4 +632,64 @@ func (client *DockerClient) ImportImage(source string, repository string, tag st
 		in = tar
 	}
 	return client.doStreamRequest("POST", "/images/create?"+v.Encode(), in, nil)
+}
+
+func (client *DockerClient) BuildImage(image BuildImage) (io.ReadCloser, error) {
+	v := url.Values{}
+
+	if image.DockerfilePath != "" {
+		v.Set("dockerfile", image.DockerfilePath)
+	}
+	if image.Tag != "" {
+		v.Set("t", image.Tag)
+	}
+	if image.Remote != "" {
+		v.Set("remote", image.Remote)
+	}
+	if image.NoCache {
+		v.Set("nocache", "1")
+	}
+	if image.Pull {
+		v.Set("pull", "1")
+	}
+	if image.Remove {
+		v.Set("rm", "1")
+	} else {
+		v.Set("rm", "0")
+	}
+	if image.ForceRemove {
+		v.Set("forcerm", "1")
+	}
+	if image.Quiet {
+		v.Set("q", "1")
+	}
+
+	v.Set("cpusetcpus", image.CpuSet)
+	v.Set("cpushares", strconv.FormatInt(image.CpuShares, 10))
+	v.Set("memory", strconv.FormatInt(image.Memory, 10))
+	v.Set("memswap", strconv.FormatInt(image.MemorySwap, 10))
+
+	headers := make(map[string]string)
+	if image.Auth != nil {
+		encoded_auth, err := image.Auth.encode()
+		if err != nil {
+			return nil, err
+		}
+
+		headers["X-Registry-Auth"] = encoded_auth
+	}
+	if image.Config != nil {
+		encoded_config, err := image.Config.encode()
+		if err != nil {
+			return nil, err
+		}
+
+		headers["X-Registry-Config"] = encoded_config
+	}
+	if image.Context != nil {
+		headers["Content-Type"] = "application/tar"
+	}
+
+	uri := fmt.Sprintf("/%s/build?%s", APIVersion, v.Encode())
+	return client.doStreamRequest("POST", uri, image.Context, headers)
 }
